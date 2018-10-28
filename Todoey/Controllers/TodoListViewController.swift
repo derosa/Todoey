@@ -14,26 +14,12 @@ class TodoListViewController: UITableViewController {
     //override var prefersStatusBarHidden: Bool { return true }
     
     var itemArray = [Item]()
-    let defaults = UserDefaults.standard
+    let dataFilePath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("Items.plist")
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        if let savedItems = defaults.array(forKey: SAVED_ITEMS_KEY) as? [Item] {
-            itemArray = savedItems
-        }
-
-        let newItem = Item();
-        newItem.title = "Find Mike"
-        itemArray.append(newItem)
-
-        let newItem2 = Item();
-        newItem2.title = "Buy Eggos"
-        itemArray.append(newItem2)
-
-        let newItem3 = Item();
-        newItem3.title = "Destroy Demogorgon"
-        itemArray.append(newItem3)
-
+        print(dataFilePath!)
+        loadItems()
     }
     
     override func didReceiveMemoryWarning() {
@@ -60,12 +46,38 @@ class TodoListViewController: UITableViewController {
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         
         itemArray[indexPath.row].done = !itemArray[indexPath.row].done
-
-        tableView.reloadData()
+        saveItems()
         tableView.deselectRow(at: indexPath, animated: true)
     }
     
     //MARK - Add New Items
+    
+    func saveItems() {
+        //self.defaults.set(self.itemArray, forKey: self.SAVED_ITEMS_KEY)
+        
+        let encoder = PropertyListEncoder()
+        do {
+            let data = try encoder.encode(itemArray)
+            try data.write(to: dataFilePath!)
+        } catch {
+            print("Error encoding data! ")
+        }
+
+        tableView.reloadData()
+    }
+    
+    func loadItems(){
+        if let data = try? Data(contentsOf: dataFilePath!){
+            let decoder = PropertyListDecoder()
+            do {
+                itemArray = try decoder.decode([Item].self, from: data)
+            } catch {
+                print("Error decoding!")
+            }
+        }
+        
+        tableView.reloadData()
+    }
     
     @IBAction func addButtonPressed(_ sender: UIBarButtonItem) {
         
@@ -81,8 +93,9 @@ class TodoListViewController: UITableViewController {
                     let item = Item()
                     item.title = newItemText
                     self.itemArray.append(item)
-                    self.defaults.set(self.itemArray, forKey: self.SAVED_ITEMS_KEY)
-                    self.tableView.reloadData()
+                    
+                    self.saveItems()
+                    
                     print("Saved!")
                 }
             }
